@@ -206,10 +206,15 @@ def render_run(r: dict, focus: str | None = None, trace: bool = True) -> str:
     parts = []
     if trace:
         parts.append(render_trace(r.get("trace") or []))
-    snaps = [s for s in (r.get("snaps") or []) if focus is None or s["label"] == focus]
-    if snaps:
-        s = snaps[0]
-        parts.append(render_frames(s["frames"], f"frames at first (break \"{s['label']}\")"))
+    snaps = r.get("snaps") or []
+    if focus == "*":
+        for i, s in enumerate(snaps):
+            parts.append(render_frames(s["frames"], f"frames at (break \"{s['label']}\") #{i + 1}"))
+    else:
+        snaps = [s for s in snaps if focus is None or s["label"] == focus]
+        if snaps:
+            s = snaps[0]
+            parts.append(render_frames(s["frames"], f"frames at first (break \"{s['label']}\")"))
     if r.get("error"):
         parts.append(f"ERROR: {r['error']}")
         if r.get("frames"):

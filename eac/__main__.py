@@ -29,7 +29,7 @@ def cmd_run(a):
         eng.load(lb.program(a.program) if a.program else (lb.program() if "program" in lb.spec else lb.program(next(iter(lb.spec["programs"])))))
         L.apply(eng, lb, a.mutate or [])
         r = eng.run()
-        print(L.render_run(r, None if a.all_snaps else lb.spec.get("focus_break"), a.trace or True))
+        print(L.render_run(r, "*" if a.all_snaps else lb.spec.get("focus_break"), True))
         if a.json:
             print(json.dumps(r))
 

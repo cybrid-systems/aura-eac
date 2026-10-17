@@ -1,0 +1,7 @@
+[ar-recursion-L1-1]  (not seen yet)
+main 调用 rho(4)。k = 4 的那个 rho 活动记录返回什么值？
+
+program:
+(program (proc main () (locals) (print (call rho 4))) (proc rho (k) (locals) (if (<= k 0) (return 1) (return (* k (call rho (- k 1)))))))
+
+answer with: python3 -m eac exercise answer ar-recursion-L1-1 <answer>

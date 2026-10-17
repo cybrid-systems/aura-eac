@@ -83,7 +83,11 @@ class Engine:
         return r
 
     def run(self) -> dict:
-        return self.call("RUN")
+        r = self.call("RUN")
+        for k in ("output", "trace", "snaps", "frames"):     # Aura encodes an empty list as null
+            if k in r and r[k] is None:
+                r[k] = []
+        return r
 
     def mutate(self, name: str, body: str, reason: str = "lab mutation") -> dict:
         return self.call("MUTATE", name, body, reason)

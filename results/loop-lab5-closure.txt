@@ -1,0 +1,80 @@
+== 1. 正确约定 / correct convention (closure-link v0)
+── frames at first (break "in addn")
+  #4 addn  (level 3)
+      [0] ret      apply-twice@call4
+      [1] dynamic  3  -> AR #3 (apply-twice)
+      [2] static   2  -> AR #2 (outer)
+      [3] p:v      1
+  #3 apply-twice  (level 2)
+      [0] ret      outer@call3
+      [1] dynamic  2  -> AR #2 (outer)
+      [2] static   1  -> AR #1 (main)
+      [3] p:f      <proc addn>
+      [4] p:x      1
+      [5] l:n      1000
+  #2 outer  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] p:n      5
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+  #0 %program (no globals)
+output: [11]   stats: {"calls": 5, "max-depth": 4, "nonlocal-accesses": 2, "static-follows": 3}
+
+== 2. mutate:rebind closure-link -> (lambda () "caller")   [wrong: a procedure parameter's static link = whoever calls it]  ok=True
+── frames at first (break "in addn")
+  #4 addn  (level 3)
+      [0] ret      apply-twice@call4
+      [1] dynamic  3  -> AR #3 (apply-twice)
+      [2] static   3  -> AR #3 (apply-twice)
+      [3] p:v      1
+  #3 apply-twice  (level 2)
+      [0] ret      outer@call3
+      [1] dynamic  2  -> AR #2 (outer)
+      [2] static   1  -> AR #1 (main)
+      [3] p:f      <proc addn>
+      [4] p:x      1
+      [5] l:n      1000
+  #2 outer  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] p:n      5
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+  #0 %program (no globals)
+output: [2001]   stats: {"calls": 5, "max-depth": 4, "nonlocal-accesses": 2, "static-follows": 3}
+   说明: 过程值必须带上定义处的环境（outer 的 AR）；改成调用者后，addn 看到的是 apply-twice 的 n。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+── frames at first (break "in addn")
+  #4 addn  (level 3)
+      [0] ret      apply-twice@call4
+      [1] dynamic  3  -> AR #3 (apply-twice)
+      [2] static   2  -> AR #2 (outer)
+      [3] p:v      1
+  #3 apply-twice  (level 2)
+      [0] ret      outer@call3
+      [1] dynamic  2  -> AR #2 (outer)
+      [2] static   1  -> AR #1 (main)
+      [3] p:f      <proc addn>
+      [4] p:x      1
+      [5] l:n      1000
+  #2 outer  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] p:n      5
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+  #0 %program (no globals)
+output: [11]   stats: {"calls": 5, "max-depth": 4, "nonlocal-accesses": 2, "static-follows": 3}
+
+verdict: {"baseline_output": [11], "mutated_output": [2001], "mutated_error": false, "restored_output": [11], "restored": true, "observable": true}

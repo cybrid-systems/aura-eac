@@ -1,0 +1,12 @@
+ch06/lab1-activation-records    §6.2,6.3.1    活动记录与调用栈 / Activation records and the call stack
+    mutations: no-param-area, no-return-address
+ch06/lab2-static-links          §6.3.1,6.4.3  静态链与动态链 / Static links vs dynamic links
+    mutations: link-to-caller, access-dynamic-chain, access-off-by-one
+ch06/lab3-parameter-passing     §6.4.1        参数传递机制 / Parameter binding
+    mutations: all-reference, all-value-result, all-name, jensen-only
+ch06/lab4-linkage               §6.3.1,6.5    逐步搭建链接约定 / Building a linkage convention step by step
+    mutations: s1-ret, s2-params, s3-locals, s4-links, s5-saves, s5-save-r1
+ch06/lab5-procedure-params      §6.4.1,6.4.3  过程参数与闭包 / Procedure-valued parameters
+    mutations: closure-links-caller, access-dynamic-chain
+ch06/lab6-objects               §6.3.2        对象记录与方法向量 / Object records and method vectors
+    mutations: dispatch-declared

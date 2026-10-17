@@ -1,0 +1,25 @@
+PASS  lab1-activation-records: factorial prints 24
+PASS  lab1-activation-records: five live frames at the deepest point
+PASS  lab1-activation-records: no parameter area -> k cannot be passed
+PASS  lab1-activation-records: no return-address slot -> fact cannot return
+PASS  lab2-static-links: lexical scoping: r sees main's x
+PASS  lab2-static-links: 6 non-local accesses x 2 static hops, plus 1 hop to link q (called from p) to main
+PASS  lab2-static-links: static link set to the caller -> r silently reads p's x
+PASS  lab2-static-links: non-local access walks the dynamic chain -> same silent bug
+PASS  lab2-static-links: one hop too few -> lands in q, which has no x
+PASS  lab3-parameter-passing: call-by-value: callee changes are invisible
+PASS  lab3-parameter-passing: call-by-reference: swap works, bump(i,i) aliases
+PASS  lab3-parameter-passing: call-by-value-result: copy-out order decides bump(i,i)
+PASS  lab3-parameter-passing: call-by-name: term re-evaluated on every use (Jensen)
+PASS  lab3-parameter-passing: only sum's k and term by name
+PASS  lab4-linkage: S1 return address only
+PASS  lab4-linkage: S2 + parameter area
+PASS  lab4-linkage: S3 + locals
+PASS  lab4-linkage: S4 + dynamic and static links
+PASS  lab4-linkage: S5 + callee-saved registers
+PASS  lab5-procedure-params: closure carries outer's AR: 1 + 5 + 5
+PASS  lab5-procedure-params: closure linked to its caller -> reads apply-twice's n
+PASS  lab5-procedure-params: dynamic-chain lookup -> same wrong n
+PASS  lab6-objects: dynamic dispatch through the object's method vector
+PASS  lab6-objects: dispatch on the declared class -> Counter.bump runs on a Loud
+all checks passed

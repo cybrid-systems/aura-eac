@@ -1,0 +1,92 @@
+== 1. 正确约定 / correct convention (access-hops v0)
+── frames at first (break "in r")
+  #4 r  (level 3)
+      [0] ret      q@call4
+      [1] dynamic  3  -> AR #3 (q)
+      [2] static   3  -> AR #3 (q)
+  #3 q  (level 2)
+      [0] ret      p@call3
+      [1] dynamic  2  -> AR #2 (p)
+      [2] static   1  -> AR #1 (main)
+  #2 p  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] l:x      100
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+      [3] l:x      7
+  #0 %program (no globals)
+output: [7, 8, 9]   stats: {"calls": 6, "max-depth": 4, "nonlocal-accesses": 6, "static-follows": 13}
+
+== 2. mutate:rebind access-hops -> (lambda (use-level decl-level) (- (- use-level decl-level) 1))   [wrong: one static hop too few]  ok=True
+── frames at first (break "in r")
+  #4 r  (level 3)
+      [0] ret      q@call4
+      [1] dynamic  3  -> AR #3 (q)
+      [2] static   3  -> AR #3 (q)
+  #3 q  (level 2)
+      [0] ret      p@call3
+      [1] dynamic  2  -> AR #2 (p)
+      [2] static   1  -> AR #1 (main)
+  #2 p  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] l:x      100
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+      [3] l:x      7
+  #0 %program (no globals)
+ERROR: non-local access to x from #4 r: took 1 static hop(s) and reached #3 q, which has no x
+── frames when the error was raised
+  #4 r  (level 3)
+      [0] ret      q@call4
+      [1] dynamic  3  -> AR #3 (q)
+      [2] static   3  -> AR #3 (q)
+  #3 q  (level 2)
+      [0] ret      p@call3
+      [1] dynamic  2  -> AR #2 (p)
+      [2] static   1  -> AR #1 (main)
+  #2 p  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] l:x      100
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+      [3] l:x      7
+  #0 %program (no globals)
+output: []   stats: {"calls": 4, "max-depth": 4, "nonlocal-accesses": 1, "static-follows": 2}
+   说明: 层差算少了一层：r 在第 3 层，x 声明在第 1 层，应走 2 跳。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+── frames at first (break "in r")
+  #4 r  (level 3)
+      [0] ret      q@call4
+      [1] dynamic  3  -> AR #3 (q)
+      [2] static   3  -> AR #3 (q)
+  #3 q  (level 2)
+      [0] ret      p@call3
+      [1] dynamic  2  -> AR #2 (p)
+      [2] static   1  -> AR #1 (main)
+  #2 p  (level 2)
+      [0] ret      main@call2
+      [1] dynamic  1  -> AR #1 (main)
+      [2] static   1  -> AR #1 (main)
+      [3] l:x      100
+  #1 main  (level 1)
+      [0] ret      %program@call1
+      [1] dynamic  0  -> AR #0 (%program)
+      [2] static   0  -> AR #0 (%program)
+      [3] l:x      7
+  #0 %program (no globals)
+output: [7, 8, 9]   stats: {"calls": 6, "max-depth": 4, "nonlocal-accesses": 6, "static-follows": 13}
+
+verdict: {"baseline_output": [7, 8, 9], "mutated_output": [], "mutated_error": "non-local access to x from #4 r: took 1 static hop(s) and reached #3 q, which has no x", "restored_output": [7, 8, 9], "restored": true, "observable": true}
