@@ -1,0 +1,50 @@
+;; Chapter 6 (3rd ed. "Implementing Procedures") runtime conventions, version 0 (the "correct" textbook choices).
+;; Loaded into the Aura workspace with set-code + eval-current. Every define here is something a compiler
+;; writer decides; the labs rewrite them with mutate:rebind and undo with ast:restore.
+;; Workspace rules: pure functions of their arguments only (aura#4587), no recursion (aura#4583),
+;; no filter/map (aura#4584).
+
+;; 6.3.1 / 6.4.3 (static links): when a procedure at lexical level caller-level calls one at callee-level, the callee's
+;; static link must point at the most recent AR of the callee's lexical parent (level callee-level - 1).
+;; Starting from the caller's own AR, that is caller-level - callee-level + 1 static-link hops.
+;; (Top-level callees need no link at all: their free names are globals at fixed addresses.)
+(define static-link-hops
+  (lambda (caller-level callee-level)
+    (+ (- caller-level callee-level) 1)))
+
+;; 6.4.3 (non-local access): a name declared at level d, used at level u, lives in the AR reached by
+;; u - d hops ...
+(define access-hops
+  (lambda (use-level decl-level)
+    (- use-level decl-level)))
+;; ... along the STATIC chain (lexical scoping). "dynamic" walks callers instead.
+(define access-chain
+  (lambda () "static"))
+
+;; Procedure-valued parameters: a call through a closure uses the AR captured when the closure was made
+;; ("env"); "caller" would wrongly link it to whoever happens to call it.
+(define closure-link
+  (lambda () "env"))
+
+;; 6.4.1 (parameter binding): "value" | "reference" | "value-result" | "name"
+(define pass-mode
+  (lambda (proc param)
+    "value"))
+
+;; 6.3.1 / 6.5 (AR layout and linkage convention): areas in offset order.
+;; "ret" return address, "dynamic" caller's AR, "static" lexical parent's AR, "params", "locals",
+;; "saved" callee-saved registers.
+(define frame-areas
+  (lambda (proc)
+    (list "ret" "dynamic" "static" "params" "locals" "saved")))
+
+;; 6.5 (register save conventions): registers a callee saves on entry and restores before returning.
+(define callee-saves
+  (lambda (proc)
+    (list)))
+
+;; 6.3.2 (object records + method vectors): a call through a variable declared as `declared` on an object whose
+;; runtime class is `runtime` uses this class's method vector. Dynamic dispatch = the runtime class.
+(define dispatch-class
+  (lambda (runtime declared)
+    runtime))
