@@ -1,0 +1,56 @@
+== 1. 正确约定 / correct convention (may-reorder? v0)
+    loadI   5 => r0
+    storeAI r0 => rarp, @x
+    loadAI  rarp, @x => r0
+    loadAI  rarp, @x => r1
+    addI    r1, 1 => r1
+    storeAI r1 => rarp, @x
+    loadI   2 => r2
+    mult    r1, r2 => r1
+    add     r0, r1 => r0
+    write   r0
+    loadAI  rarp, @x => r0
+    write   r0
+    halt
+stats: registers=3  code-size=13  ops=13  loads=3  stores=2  mults=1
+ILOC output: [17, 6]
+language   : [17, 6]   -> matches
+
+== 2. mutate:rebind may-reorder? -> (lambda (left-effects right-effects) #t)   [wrong: reorder operands even when one has a side effect]  ok=True
+    loadI   5 => r0
+    storeAI r0 => rarp, @x
+    loadAI  rarp, @x => r0
+    addI    r0, 1 => r0
+    storeAI r0 => rarp, @x
+    loadI   2 => r1
+    mult    r0, r1 => r0
+    loadAI  rarp, @x => r1
+    add     r1, r0 => r0
+    write   r0
+    loadAI  rarp, @x => r0
+    write   r0
+    halt
+stats: registers=2  code-size=13  ops=13  loads=3  stores=2  mults=1
+ILOC output: [18, 6]
+language   : [17, 6]   -> DOES NOT MATCH (miscompiled)
+   说明: 右操作数 (* (inc! x) 2) 需要的寄存器更多，于是被提前算；inc! 先把 x 改成 6，左边再读 x 就成了 6。程序照常结束，打印 18 而不是 17。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+    loadI   5 => r0
+    storeAI r0 => rarp, @x
+    loadAI  rarp, @x => r0
+    loadAI  rarp, @x => r1
+    addI    r1, 1 => r1
+    storeAI r1 => rarp, @x
+    loadI   2 => r2
+    mult    r1, r2 => r1
+    add     r0, r1 => r0
+    write   r0
+    loadAI  rarp, @x => r0
+    write   r0
+    halt
+stats: registers=3  code-size=13  ops=13  loads=3  stores=2  mults=1
+ILOC output: [17, 6]
+language   : [17, 6]   -> matches
+
+verdict: {"baseline_output": [17, 6], "mutated_output": [18, 6], "mutated_error": false, "restored_output": [17, 6], "restored": true, "observable": true, "matches_reference": [true, false, true], "stats_changed": {"registers": [3, 2]}}

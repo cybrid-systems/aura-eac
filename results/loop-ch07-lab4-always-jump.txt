@@ -1,0 +1,20 @@
+== 1. 正确约定 / correct convention (case-strategy v0)
+stats: registers=2  code-size=284  ops=637  loads=95  stores=34  mults=13  cmps=109  branches=109  jumps=50  table-words=6
+case statements: 6 arms keys 1..6 -> jump, 3 arms keys 0..4 -> linear, 6 arms keys 1..5000 -> binary, 6 arms keys 1..5000 -> binary, 6 arms keys 1..5000 -> binary
+ILOC output: [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4]
+language   : [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4]   -> matches
+
+== 2. mutate:rebind case-strategy -> (lambda (n lo hi) "jump")   [jump table for every case statement, however sparse]  ok=True
+stats: registers=2  code-size=189  ops=598  loads=108  stores=34  mults=26  cmps=77  branches=77  jumps=55  table-words=15011
+case statements: 6 arms keys 1..6 -> jump, 3 arms keys 0..4 -> jump, 6 arms keys 1..5000 -> jump, 6 arms keys 1..5000 -> jump, 6 arms keys 1..5000 -> jump
+ILOC output: [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4]
+language   : [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4]   -> matches
+   说明: 稀疏的键（1..5000 里只有 6 个）也建跳转表：比较次数最少，但表有 5000 个字。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=2  code-size=284  ops=637  loads=95  stores=34  mults=13  cmps=109  branches=109  jumps=50  table-words=6
+case statements: 6 arms keys 1..6 -> jump, 3 arms keys 0..4 -> linear, 6 arms keys 1..5000 -> binary, 6 arms keys 1..5000 -> binary, 6 arms keys 1..5000 -> binary
+ILOC output: [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4]
+language   : [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4]   -> matches
+
+verdict: {"baseline_output": [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4], "mutated_output": [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4], "mutated_error": false, "restored_output": [0, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0, 0, 70, 7, 72, 7, 74, 9, 2, 9, 9, 9, 9, 9, 3, 4], "restored": true, "observable": true, "matches_reference": [true, true, true], "stats_changed": {"code-size": [284, 189], "ops": [637, 598], "loads": [95, 108], "mults": [13, 26], "cmps": [109, 77], "branches": [109, 77], "jumps": [50, 55], "table-words": [6, 15011]}}

@@ -1,0 +1,40 @@
+    loadI   2 => r0
+    storeAI r0 => rarp, @a
+    loadI   3 => r0
+    storeAI r0 => rarp, @b
+    loadI   7 => r0
+    storeAI r0 => rarp, @c
+    loadI   40 => r0
+    storeAI r0 => rarp, @d
+    loadI   9 => r0
+    storeAI r0 => rarp, @e
+    loadI   1 => r0
+    storeAI r0 => rarp, @f
+    loadAI  rarp, @c => r0
+    loadAI  rarp, @d => r1
+    add     r0, r1 => r0
+    loadAI  rarp, @e => r1
+    loadAI  rarp, @f => r2
+    sub     r1, r2 => r1
+    mult    r0, r1 => r0
+    loadAI  rarp, @a => r1
+    loadAI  rarp, @b => r2
+    mult    r1, r2 => r1
+    sub     r1, r0 => r0
+    write   r0
+    loadAI  rarp, @e => r0
+    loadAI  rarp, @f => r1
+    add     r0, r1 => r0
+    loadAI  rarp, @d => r1
+    div     r1, r0 => r0
+    loadAI  rarp, @c => r1
+    sub     r1, r0 => r0
+    loadAI  rarp, @b => r1
+    mult    r1, r0 => r0
+    loadAI  rarp, @a => r1
+    add     r1, r0 => r0
+    write   r0
+    halt
+stats: registers=3  code-size=37  ops=37  loads=12  stores=6  mults=3
+ILOC output: [-370, 11]
+language   : [-370, 11]   -> matches

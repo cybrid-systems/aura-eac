@@ -1,0 +1,20 @@
+== 1. 正确约定 / correct convention (jump-range-check? v0)
+stats: registers=2  code-size=59  ops=25  loads=2  stores=1  cmps=4  branches=4  table-words=8
+case statements: 4 arms keys 1..4 -> jump, 4 arms keys 1..4 -> jump
+ILOC output: [10, 99, 20, 999]
+language   : [10, 99, 20, 999]   -> matches
+
+== 2. mutate:rebind jump-range-check? -> (lambda () #f)   [wrong: index the jump table without checking the selector range]  ok=True
+stats: registers=1  code-size=47  ops=14  loads=2  stores=1  mults=1  jumps=2  table-words=8
+case statements: 4 arms keys 1..4 -> jump, 4 arms keys 1..4 -> jump
+ILOC output: [21, 999]
+language   : [10, 99, 20, 999]   -> DOES NOT MATCH (miscompiled)
+   说明: 不做范围检查：k = 5 越过第一张表的末尾，读到的是紧挨着的第二张表的第一项，于是跳进了第二个 case 的分支，中间的输出全被跳过，程序不报错。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=2  code-size=59  ops=25  loads=2  stores=1  cmps=4  branches=4  table-words=8
+case statements: 4 arms keys 1..4 -> jump, 4 arms keys 1..4 -> jump
+ILOC output: [10, 99, 20, 999]
+language   : [10, 99, 20, 999]   -> matches
+
+verdict: {"baseline_output": [10, 99, 20, 999], "mutated_output": [21, 999], "mutated_error": false, "restored_output": [10, 99, 20, 999], "restored": true, "observable": true, "matches_reference": [true, false, true], "stats_changed": {"registers": [2, 1], "code-size": [59, 47], "ops": [25, 14], "mults": [0, 1], "cmps": [4, 0], "branches": [4, 0], "jumps": [0, 2]}}

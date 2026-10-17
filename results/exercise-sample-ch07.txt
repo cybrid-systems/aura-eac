@@ -1,0 +1,24 @@
+su-registers-L1-1                  not seen yet                       ok  
+reorder-effects-L1-2               not seen yet                       ok  
+short-circuit-L1-3                 not seen yet                       BAD no-short-circuit
+short-circuit-L1-4-c               recent confusion: no-short-circuit BAD no-short-circuit
+short-circuit-L1-5-c               recent confusion: no-short-circuit ok  
+array-address-L1-6                 not seen yet                       BAD 
+short-circuit-L1-7-c               recent confusion: no-short-circuit BAD no-short-circuit
+short-circuit-L1-8-c               recent confusion: no-short-circuit BAD no-short-circuit
+short-circuit-L1-9-c               recent confusion: no-short-circuit ok  
+case-cost-L1-10                    not seen yet                       ok  
+short-circuit-L1-11-c              recent confusion: no-short-circuit BAD 
+short-circuit-L1-12-c              recent confusion: no-short-circuit BAD 
+short-circuit-L1-13-c              recent confusion: no-short-circuit BAD no-short-circuit
+array-address-L1-14                weakest concept                    ok  
+short-circuit-L1-15-c              recent confusion: no-short-circuit BAD no-short-circuit
+short-circuit-L1-16-c              recent confusion: no-short-circuit BAD no-short-circuit
+concept               attempts  correct  level  score  mastered
+su-registers                 1        1      1   0.40  -
+reorder-effects              1        1      1   0.40  -
+short-circuit               11        2      1   0.04  -
+array-address                2        1      1   0.40  -
+case-cost                    1        1      1   0.40  -
+open confusions: {'no-short-circuit': 5}
+experiments recorded: 0

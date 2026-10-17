@@ -1,0 +1,128 @@
+== 1. 正确约定 / correct convention (eval-first v0)
+    loadI   2 => r0
+    storeAI r0 => rarp, @a
+    loadI   3 => r0
+    storeAI r0 => rarp, @b
+    loadI   7 => r0
+    storeAI r0 => rarp, @c
+    loadI   40 => r0
+    storeAI r0 => rarp, @d
+    loadI   9 => r0
+    storeAI r0 => rarp, @e
+    loadI   1 => r0
+    storeAI r0 => rarp, @f
+    loadAI  rarp, @c => r0
+    loadAI  rarp, @d => r1
+    add     r0, r1 => r0
+    loadAI  rarp, @e => r1
+    loadAI  rarp, @f => r2
+    sub     r1, r2 => r1
+    mult    r0, r1 => r0
+    loadAI  rarp, @a => r1
+    loadAI  rarp, @b => r2
+    mult    r1, r2 => r1
+    sub     r1, r0 => r0
+    write   r0
+    loadAI  rarp, @e => r0
+    loadAI  rarp, @f => r1
+    add     r0, r1 => r0
+    loadAI  rarp, @d => r1
+    div     r1, r0 => r0
+    loadAI  rarp, @c => r1
+    sub     r1, r0 => r0
+    loadAI  rarp, @b => r1
+    mult    r1, r0 => r0
+    loadAI  rarp, @a => r1
+    add     r1, r0 => r0
+    write   r0
+    halt
+stats: registers=3  code-size=37  ops=37  loads=12  stores=6  mults=3
+ILOC output: [-370, 11]
+language   : [-370, 11]   -> matches
+
+== 2. mutate:rebind eval-first -> (lambda (op lneed rneed) "left")   [always generate the left operand first]  ok=True
+    loadI   2 => r0
+    storeAI r0 => rarp, @a
+    loadI   3 => r0
+    storeAI r0 => rarp, @b
+    loadI   7 => r0
+    storeAI r0 => rarp, @c
+    loadI   40 => r0
+    storeAI r0 => rarp, @d
+    loadI   9 => r0
+    storeAI r0 => rarp, @e
+    loadI   1 => r0
+    storeAI r0 => rarp, @f
+    loadAI  rarp, @a => r0
+    loadAI  rarp, @b => r1
+    mult    r0, r1 => r0
+    loadAI  rarp, @c => r1
+    loadAI  rarp, @d => r2
+    add     r1, r2 => r1
+    loadAI  rarp, @e => r2
+    loadAI  rarp, @f => r3
+    sub     r2, r3 => r2
+    mult    r1, r2 => r1
+    sub     r0, r1 => r0
+    write   r0
+    loadAI  rarp, @a => r0
+    loadAI  rarp, @b => r1
+    loadAI  rarp, @c => r2
+    loadAI  rarp, @d => r3
+    loadAI  rarp, @e => r4
+    loadAI  rarp, @f => r5
+    add     r4, r5 => r4
+    div     r3, r4 => r3
+    sub     r2, r3 => r2
+    mult    r1, r2 => r1
+    add     r0, r1 => r0
+    write   r0
+    halt
+stats: registers=6  code-size=37  ops=37  loads=12  stores=6  mults=3
+ILOC output: [-370, 11]
+language   : [-370, 11]   -> matches
+   说明: 总是先算左子树：右深的 e2 每进一层都要多占一个寄存器，6 个叶子同时活着。结果仍然正确，只是寄存器需求从 3 涨到 6。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+    loadI   2 => r0
+    storeAI r0 => rarp, @a
+    loadI   3 => r0
+    storeAI r0 => rarp, @b
+    loadI   7 => r0
+    storeAI r0 => rarp, @c
+    loadI   40 => r0
+    storeAI r0 => rarp, @d
+    loadI   9 => r0
+    storeAI r0 => rarp, @e
+    loadI   1 => r0
+    storeAI r0 => rarp, @f
+    loadAI  rarp, @c => r0
+    loadAI  rarp, @d => r1
+    add     r0, r1 => r0
+    loadAI  rarp, @e => r1
+    loadAI  rarp, @f => r2
+    sub     r1, r2 => r1
+    mult    r0, r1 => r0
+    loadAI  rarp, @a => r1
+    loadAI  rarp, @b => r2
+    mult    r1, r2 => r1
+    sub     r1, r0 => r0
+    write   r0
+    loadAI  rarp, @e => r0
+    loadAI  rarp, @f => r1
+    add     r0, r1 => r0
+    loadAI  rarp, @d => r1
+    div     r1, r0 => r0
+    loadAI  rarp, @c => r1
+    sub     r1, r0 => r0
+    loadAI  rarp, @b => r1
+    mult    r1, r0 => r0
+    loadAI  rarp, @a => r1
+    add     r1, r0 => r0
+    write   r0
+    halt
+stats: registers=3  code-size=37  ops=37  loads=12  stores=6  mults=3
+ILOC output: [-370, 11]
+language   : [-370, 11]   -> matches
+
+verdict: {"baseline_output": [-370, 11], "mutated_output": [-370, 11], "mutated_error": false, "restored_output": [-370, 11], "restored": true, "observable": true, "matches_reference": [true, true, true], "stats_changed": {"registers": [3, 6]}}

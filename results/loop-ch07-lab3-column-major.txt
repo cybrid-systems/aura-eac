@@ -1,0 +1,23 @@
+== 1. 正确约定 / correct convention (array-layout v0)
+stats: registers=3  code-size=164  ops=586  loads=87  stores=33  mults=46  cmps=87  branches=87  jumps=15
+arrays: A row base=288 dope=256, B row base=352 dope=336
+ILOC output: [23, 14, 31, 7, 8]
+language   : [23, 14, 31, 7, 8]   -> matches
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+
+== 2. mutate:rebind array-layout -> (lambda (name) "column")   [column-major storage]  ok=True
+stats: registers=3  code-size=164  ops=586  loads=87  stores=33  mults=46  cmps=87  branches=87  jumps=15
+arrays: A column base=288 dope=256, B column base=352 dope=336
+ILOC output: [23, 14, 31, 7, 8]
+language   : [23, 14, 31, 7, 8]   -> matches
+addresses: A[1,1]=288  A[1,4]=324  A[2,1]=292  A[2,3]=316  A[3,4]=332
+   说明: 列主序：同一列的元素相邻。程序输出不变，但 A[2,3] 的地址变了，地址公式里乘的是第一维的长度。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=3  code-size=164  ops=586  loads=87  stores=33  mults=46  cmps=87  branches=87  jumps=15
+arrays: A row base=288 dope=256, B row base=352 dope=336
+ILOC output: [23, 14, 31, 7, 8]
+language   : [23, 14, 31, 7, 8]   -> matches
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+
+verdict: {"baseline_output": [23, 14, 31, 7, 8], "mutated_output": [23, 14, 31, 7, 8], "mutated_error": false, "restored_output": [23, 14, 31, 7, 8], "restored": true, "observable": true, "matches_reference": [true, true, true], "stats_changed": {}, "addresses_changed": {"A[1,4]": [300, 324], "A[2,1]": [304, 292], "A[2,3]": [312, 316]}}

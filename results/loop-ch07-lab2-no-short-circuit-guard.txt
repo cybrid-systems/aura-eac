@@ -1,0 +1,17 @@
+== 1. 正确约定 / correct convention (short-circuit? v0)
+stats: registers=2  code-size=33  ops=93  loads=22  stores=9  cmps=12  branches=12  jumps=6
+ILOC output: [2]
+language   : [2]   -> matches
+
+== 2. mutate:rebind short-circuit? -> (lambda (op rhs-effects rhs-may-trap) #f)   [wrong: never short-circuit; the division guard stops guarding]  ok=True
+stats: registers=3  code-size=33  ops=83  loads=21  stores=8  cmps=11  branches=7  jumps=5
+ILOC output: []   ERROR: division by zero
+language   : [2]   -> DOES NOT MATCH (miscompiled)
+   说明: (and (!= d 0) (> (/ x d) 4))：不短路时 d = 0 也会去做除法，生成的代码在运行时除零。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=2  code-size=33  ops=93  loads=22  stores=9  cmps=12  branches=12  jumps=6
+ILOC output: [2]
+language   : [2]   -> matches
+
+verdict: {"baseline_output": [2], "mutated_output": [], "mutated_error": "division by zero", "restored_output": [2], "restored": true, "observable": true, "matches_reference": [true, false, true], "stats_changed": {"registers": [2, 3], "ops": [93, 83], "loads": [22, 21], "stores": [9, 8], "cmps": [12, 11], "branches": [12, 7], "jumps": [6, 5]}}

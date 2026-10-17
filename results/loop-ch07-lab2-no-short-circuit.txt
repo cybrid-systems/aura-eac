@@ -1,0 +1,17 @@
+== 1. 正确约定 / correct convention (short-circuit? v0)
+stats: registers=3  code-size=69  ops=173  loads=42  stores=15  cmps=22  branches=17  jumps=13
+ILOC output: [1, 0, 100, 0, 1, 2, 3, 4, 5, 3]
+language   : [1, 0, 100, 0, 1, 2, 3, 4, 5, 3]   -> matches
+
+== 2. mutate:rebind short-circuit? -> (lambda (op rhs-effects rhs-may-trap) #f)   [wrong: never short-circuit, evaluate both operands]  ok=True
+stats: registers=3  code-size=69  ops=191  loads=45  stores=18  cmps=25  branches=14  jumps=13
+ILOC output: [1, 0, 100, 0, 1, 2, 3, 4, 5, 6]
+language   : [1, 0, 100, 0, 1, 2, 3, 4, 5, 3]   -> DOES NOT MATCH (miscompiled)
+   说明: and/or 两边都算：k 为偶数时本来不该执行的 (inc! n) 也执行了，n 从 3 变成 6，程序不报错。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=3  code-size=69  ops=173  loads=42  stores=15  cmps=22  branches=17  jumps=13
+ILOC output: [1, 0, 100, 0, 1, 2, 3, 4, 5, 3]
+language   : [1, 0, 100, 0, 1, 2, 3, 4, 5, 3]   -> matches
+
+verdict: {"baseline_output": [1, 0, 100, 0, 1, 2, 3, 4, 5, 3], "mutated_output": [1, 0, 100, 0, 1, 2, 3, 4, 5, 6], "mutated_error": false, "restored_output": [1, 0, 100, 0, 1, 2, 3, 4, 5, 3], "restored": true, "observable": true, "matches_reference": [true, false, true], "stats_changed": {"ops": [173, 191], "loads": [42, 45], "stores": [15, 18], "cmps": [22, 25], "branches": [17, 14]}}

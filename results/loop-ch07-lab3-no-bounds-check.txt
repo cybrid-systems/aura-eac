@@ -1,0 +1,23 @@
+== 1. 正确约定 / correct convention (bounds-check? v0)
+stats: registers=3  code-size=72  ops=488  loads=82  stores=31  mults=37  cmps=71  branches=71  jumps=15
+arrays: A row base=288 dope=256
+ILOC output: []   ERROR: array index out of bounds
+language   : []   ERROR: array index out of bounds   -> matches
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+
+== 2. mutate:rebind bounds-check? -> (lambda (name) #f)   [drop the subscript range checks]  ok=True
+stats: registers=3  code-size=47  ops=338  loads=83  stores=31  mults=38  cmps=19  branches=19  jumps=15
+arrays: A row base=288 dope=256
+ILOC output: [31]
+language   : []   ERROR: array index out of bounds   -> DOES NOT MATCH (miscompiled)
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+   说明: 不检查下标：A[2,5] 按行主序算出来正好是 A[3,1] 的地址，静默读到 31。语言规定这里应该报越界。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=3  code-size=72  ops=488  loads=82  stores=31  mults=37  cmps=71  branches=71  jumps=15
+arrays: A row base=288 dope=256
+ILOC output: []   ERROR: array index out of bounds
+language   : []   ERROR: array index out of bounds   -> matches
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+
+verdict: {"baseline_output": [], "mutated_output": [31], "mutated_error": false, "restored_output": [], "restored": true, "observable": true, "matches_reference": [true, false, true], "stats_changed": {"code-size": [72, 47], "ops": [488, 338], "loads": [82, 83], "mults": [37, 38], "cmps": [71, 19], "branches": [71, 19]}}

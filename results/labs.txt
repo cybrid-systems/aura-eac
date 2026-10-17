@@ -10,3 +10,11 @@ ch06/lab5-procedure-params      §6.4.1,6.4.3  过程参数与闭包 / Procedure
     mutations: closure-links-caller, access-dynamic-chain
 ch06/lab6-objects               §6.3.2        对象记录与方法向量 / Object records and method vectors
     mutations: dispatch-declared
+ch07/lab1-eval-order            §7.3.1,7.3.3  求值顺序与寄存器压力 / Evaluation order and register pressure
+    mutations: left-first, smaller-first, flat-labels, reorder-across-effects
+ch07/lab2-booleans              §7.4.1,7.4.2  布尔值与关系运算的编码 / Boolean and relational values
+    mutations: or-as-add, no-short-circuit, no-short-circuit-guard, all-positional, always-short-circuit
+ch07/lab3-arrays                §7.5.1,7.5.2,7.5.3,7.5.4 数组寻址 / Array addressing
+    mutations: column-major, indirection, dope-vector, no-bounds-check, forget-lower-bound, extent-off-by-one
+ch07/lab4-case                  §7.8.3        case 语句的三种实现 / Implementing case statements
+    mutations: always-linear, always-jump, binary-unsorted, no-range-check

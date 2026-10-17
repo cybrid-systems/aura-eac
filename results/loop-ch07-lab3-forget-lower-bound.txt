@@ -1,0 +1,23 @@
+== 1. 正确约定 / correct convention (index-origin v0)
+stats: registers=3  code-size=164  ops=586  loads=87  stores=33  mults=46  cmps=87  branches=87  jumps=15
+arrays: A row base=288 dope=256, B row base=352 dope=336
+ILOC output: [23, 14, 31, 7, 8]
+language   : [23, 14, 31, 7, 8]   -> matches
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+
+== 2. mutate:rebind index-origin -> (lambda (lo) 0)   [wrong: treat every dimension as if it started at 0]  ok=True
+stats: registers=3  code-size=164  ops=586  loads=87  stores=33  mults=46  cmps=87  branches=87  jumps=15
+arrays: A row base=288 dope=256, B row base=352 dope=336
+ILOC output: [23, 14, 31, 34, 8]
+language   : [23, 14, 31, 7, 8]   -> DOES NOT MATCH (miscompiled)
+addresses: A[1,1]=308  A[1,4]=320  A[2,1]=324  A[2,3]=332  A[3,4]=352
+   说明: 忘了减下界：A 的两维都从 1 开始，每个地址都偏后一行加一个元素，最后几次写入越过了 A 的末尾，写进了 B。
+
+== 3. ast:restore + eval-current  ok=True  source restored byte-for-byte: True
+stats: registers=3  code-size=164  ops=586  loads=87  stores=33  mults=46  cmps=87  branches=87  jumps=15
+arrays: A row base=288 dope=256, B row base=352 dope=336
+ILOC output: [23, 14, 31, 7, 8]
+language   : [23, 14, 31, 7, 8]   -> matches
+addresses: A[1,1]=288  A[1,4]=300  A[2,1]=304  A[2,3]=312  A[3,4]=332
+
+verdict: {"baseline_output": [23, 14, 31, 7, 8], "mutated_output": [23, 14, 31, 34, 8], "mutated_error": false, "restored_output": [23, 14, 31, 7, 8], "restored": true, "observable": true, "matches_reference": [true, false, true], "stats_changed": {}, "addresses_changed": {"A[1,1]": [288, 308], "A[1,4]": [300, 320], "A[2,1]": [304, 324], "A[2,3]": [312, 332], "A[3,4]": [332, 352]}}
