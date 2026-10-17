@@ -1,0 +1,13 @@
+; needs a static link: inner uses outer's y two levels up
+(program
+  (proc main () (locals)
+    (procs
+      (proc outer (y) (locals)
+        (procs
+          (proc mid () (locals)
+            (procs
+              (proc inner () (locals)
+                (return (* y 2))))
+            (return (call inner))))
+        (return (call mid))))
+    (print (call outer 21))))

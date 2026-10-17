@@ -1,0 +1,9 @@
+; needs callee-saved registers: main keeps a value in r1 across a call; clobber uses r1 as scratch
+(program
+  (proc main () (locals)
+    (reg-set! r1 42)
+    (call clobber)
+    (print (reg r1)))
+  (proc clobber () (locals)
+    (reg-set! r1 0)
+    (print (reg r1))))

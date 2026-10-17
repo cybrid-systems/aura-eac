@@ -1,0 +1,33 @@
+{
+  "title": "逐步搭建链接约定 / Building a linkage convention step by step",
+  "sections": ["6.3.1", "6.5"],
+  "programs": {
+    "t1-calls": {"file": "t1-calls.mal", "output": [2, 1]},
+    "t2-params": {"file": "t2-params.mal", "output": [120]},
+    "t3-locals": {"file": "t3-locals.mal", "output": [10]},
+    "t4-nested": {"file": "t4-nested.mal", "output": [42]},
+    "t5-saves": {"file": "t5-saves.mal", "output": [0, 42]}
+  },
+  "stages": [
+    {"name": "S1 return address only", "mutations": ["s1-ret"], "pass": ["t1-calls"],
+     "layout": {"proc": "tri", "fields": [[0, "ret"]]}},
+    {"name": "S2 + parameter area", "mutations": ["s2-params"], "pass": ["t1-calls", "t2-params"],
+     "layout": {"proc": "tri", "fields": [[0, "ret"], [1, "p:m"]]}},
+    {"name": "S3 + locals", "mutations": ["s3-locals"], "pass": ["t1-calls", "t2-params", "t3-locals"],
+     "layout": {"proc": "tri", "fields": [[0, "ret"], [1, "p:m"], [2, "l:acc"]]}},
+    {"name": "S4 + dynamic and static links", "mutations": ["s4-links"], "pass": ["t1-calls", "t2-params", "t3-locals", "t4-nested"],
+     "layout": {"proc": "tri", "fields": [[0, "ret"], [1, "dynamic"], [2, "static"], [3, "p:m"], [4, "l:acc"]]},
+     "follows": {"t4-nested": {"static-follows": 2}}},
+    {"name": "S5 + callee-saved registers", "mutations": ["s5-saves", "s5-save-r1"],
+     "pass": ["t1-calls", "t2-params", "t3-locals", "t4-nested", "t5-saves"],
+     "layout": {"proc": "tri", "fields": [[0, "ret"], [1, "dynamic"], [2, "static"], [3, "p:m"], [4, "l:acc"], [5, "s:r1"]]}}
+  ],
+  "mutations": {
+    "s1-ret": {"define": "frame-areas", "body": "(lambda (proc) (list \"ret\"))", "reason": "S1: return address only"},
+    "s2-params": {"define": "frame-areas", "body": "(lambda (proc) (list \"ret\" \"params\"))", "reason": "S2: + parameter area"},
+    "s3-locals": {"define": "frame-areas", "body": "(lambda (proc) (list \"ret\" \"params\" \"locals\"))", "reason": "S3: + locals"},
+    "s4-links": {"define": "frame-areas", "body": "(lambda (proc) (list \"ret\" \"dynamic\" \"static\" \"params\" \"locals\"))", "reason": "S4: + dynamic and static links"},
+    "s5-saves": {"define": "frame-areas", "body": "(lambda (proc) (list \"ret\" \"dynamic\" \"static\" \"params\" \"locals\" \"saved\"))", "reason": "S5: + register save area"},
+    "s5-save-r1": {"define": "callee-saves", "body": "(lambda (proc) (list \"r1\"))", "reason": "S5: callee saves r1"}
+  }
+}

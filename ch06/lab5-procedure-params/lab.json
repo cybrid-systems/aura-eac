@@ -1,0 +1,19 @@
+{
+  "title": "过程参数与闭包 / Procedure-valued parameters",
+  "sections": ["6.4.1", "6.4.3"],
+  "program": "program.mal",
+  "focus_break": "in addn",
+  "checks": [
+    {"name": "closure carries outer's AR: 1 + 5 + 5", "expect_output": [11]},
+    {"name": "closure linked to its caller -> reads apply-twice's n", "mutations": ["closure-links-caller"], "expect_output": [2001]},
+    {"name": "dynamic-chain lookup -> same wrong n", "mutations": ["access-dynamic-chain"], "expect_output": [2001]}
+  ],
+  "mutations": {
+    "closure-links-caller": {"define": "closure-link", "body": "(lambda () \"caller\")",
+      "reason": "wrong: a procedure parameter's static link = whoever calls it",
+      "explain": "过程值必须带上定义处的环境（outer 的 AR）；改成调用者后，addn 看到的是 apply-twice 的 n。"},
+    "access-dynamic-chain": {"define": "access-chain", "body": "(lambda () \"dynamic\")",
+      "reason": "wrong: resolve non-local names along callers",
+      "explain": "动态链上离 addn 最近的是 apply-twice，于是取到 n = 1000。"}
+  }
+}

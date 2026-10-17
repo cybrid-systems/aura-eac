@@ -1,0 +1,10 @@
+; needs a local-variable area
+(program
+  (proc main () (locals s n)
+    (set! n 4)
+    (set! s (call tri n))
+    (print s))
+  (proc tri (m) (locals acc)
+    (set! acc 0)
+    (while (> m 0) (set! acc (+ acc m)) (set! m (- m 1)))
+    (return acc)))

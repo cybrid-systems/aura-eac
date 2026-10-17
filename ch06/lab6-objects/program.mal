@@ -1,0 +1,25 @@
+; Lab 6: object records and method vectors. Loud overrides bump; the override keeps bump's slot,
+; and the inherited method `base` keeps its slot too. (send-as Counter d bump) is a call through a
+; variable whose declared type is Counter.
+(program
+  (class Counter
+    (fields n)
+    (methods
+      (proc bump (self) (locals)
+        (field-set! self n (+ (field self n) 1))
+        (return (field self n)))
+      (proc base (self) (locals)
+        (return 1))))
+  (class Loud (extends Counter)
+    (fields k)
+    (methods
+      (proc bump (self) (locals)
+        (field-set! self n (+ (field self n) 10))
+        (return (field self n)))))
+  (proc main () (locals c d)
+    (set! c (new Counter))
+    (set! d (new Loud))
+    (print (send c bump))
+    (print (send d bump))
+    (print (send-as Counter d bump))
+    (print (send d base))))

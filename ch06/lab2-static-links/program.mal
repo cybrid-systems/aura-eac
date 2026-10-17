@@ -1,0 +1,20 @@
+; Lab 2: Pascal-style nesting. main declares x; p declares its own x (shadowing);
+; r is nested in q and uses main's x. p calls q, so when r runs, the *caller* chain is r -> q -> p -> main
+; but the *lexical* chain is r -> q -> main.
+(program
+  (proc main () (locals x)
+    (procs
+      (proc p () (locals x)
+        (set! x 100)
+        (call q))
+      (proc q () (locals)
+        (procs
+          (proc r () (locals)
+            (break "in r")
+            (print x)
+            (set! x (+ x 1))))
+        (call r)))
+    (set! x 7)
+    (call p)
+    (call q)
+    (print x)))

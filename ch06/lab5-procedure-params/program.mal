@@ -1,0 +1,15 @@
+; Lab 5 (the "harder variant"): a procedure passed as a parameter must carry its own static link.
+; addn is nested in outer and uses outer's n. apply-twice also has a local called n.
+(program
+  (proc main () (locals)
+    (procs
+      (proc outer (n) (locals)
+        (procs
+          (proc addn (v) (locals)
+            (break "in addn")
+            (return (+ v n))))
+        (return (call apply-twice (proc-ref addn) 1)))
+      (proc apply-twice (f x) (locals n)
+        (set! n 1000)
+        (return (call f (call f x)))))
+    (print (call outer 5))))

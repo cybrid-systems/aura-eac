@@ -1,0 +1,6 @@
+; needs a parameter area
+(program
+  (proc main () (locals)
+    (print (call fact 5)))
+  (proc fact (k) (locals)
+    (if (<= k 1) (return 1) (return (* k (call fact (- k 1)))))))

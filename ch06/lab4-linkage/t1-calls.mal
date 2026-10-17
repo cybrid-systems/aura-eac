@@ -1,0 +1,9 @@
+; needs only a return address
+(program
+  (proc main () (locals)
+    (call a)
+    (print 1))
+  (proc a () (locals)
+    (call b))
+  (proc b () (locals)
+    (print 2)))

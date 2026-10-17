@@ -59,7 +59,11 @@ class Engine:
     def call(self, cmd: str, *fields) -> dict:
         self.p.stdin.write("\t".join([cmd, *[_clean(f) for f in fields]]) + "\n")
         self.p.stdin.flush()
-        return self._read()
+        r = self._read()
+        if r.get("ready"):
+            # the engine re-ran its file after an uncaught top-level error (see aura#4588 note in engine.aura)
+            raise AuraError(f"engine restarted while handling {cmd}; Aura reported an uncaught error")
+        return r
 
     # -- requests
     def policy(self, path) -> dict:

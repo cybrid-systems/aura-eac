@@ -1,0 +1,14 @@
+{
+  "title": "对象记录与方法向量 / Object records and method vectors",
+  "sections": ["6.3.2"],
+  "program": "program.mal",
+  "checks": [
+    {"name": "dynamic dispatch through the object's method vector", "expect_output": [1, 10, 20, 1]},
+    {"name": "dispatch on the declared class -> Counter.bump runs on a Loud", "mutations": ["dispatch-declared"], "expect_output": [1, 10, 11, 1]}
+  ],
+  "mutations": {
+    "dispatch-declared": {"define": "dispatch-class", "body": "(lambda (runtime declared) declared)",
+      "reason": "wrong for virtual methods: use the declared class's method vector",
+      "explain": "按声明类型取方法向量，相当于静态绑定：覆盖的方法被绕过。"}
+  }
+}

@@ -1,0 +1,11 @@
+; Lab 1: one activation record per call. `fact` is recursive, so several ARs for the same procedure are
+; live at once, each with its own k. (break k) takes a snapshot of every live frame.
+(program
+  (proc main () (locals r)
+    (set! r (call fact 4))
+    (print r))
+  (proc fact (k) (locals)
+    (break "fact entered")
+    (if (<= k 1)
+        (return 1)
+        (return (* k (call fact (- k 1)))))))

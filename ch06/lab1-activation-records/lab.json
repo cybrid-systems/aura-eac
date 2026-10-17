@@ -1,0 +1,24 @@
+{
+  "title": "活动记录与调用栈 / Activation records and the call stack",
+  "sections": ["6.2", "6.3.1"],
+  "program": "program.mal",
+  "focus_break": "fact entered",
+  "checks": [
+    {"name": "factorial prints 24", "expect_output": [24]},
+    {"name": "five live frames at the deepest point", "expect_stats": {"max-depth": 5, "calls": 5}},
+    {"name": "no parameter area -> k cannot be passed", "mutations": ["no-param-area"],
+     "expect_error": "has no 'p:k' slot (passing parameters)"},
+    {"name": "no return-address slot -> fact cannot return", "mutations": ["no-return-address"],
+     "expect_error": "has no 'ret' slot (returning"}
+  ],
+  "mutations": {
+    "no-param-area": {"define": "frame-areas",
+      "body": "(lambda (proc) (list \"ret\" \"dynamic\" \"static\" \"locals\" \"saved\"))",
+      "reason": "drop the parameter area from the AR layout",
+      "explain": "实参必须有地方放：去掉参数区后，调用方在 precall 序列里找不到 k 的槽位。"},
+    "no-return-address": {"define": "frame-areas",
+      "body": "(lambda (proc) (list \"dynamic\" \"static\" \"params\" \"locals\" \"saved\"))",
+      "reason": "drop the return-address slot",
+      "explain": "被调用者返回时要知道跳回哪里；没有返回地址槽，epilog 无处可读。"}
+  }
+}

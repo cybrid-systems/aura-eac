@@ -1,0 +1,28 @@
+{
+  "title": "参数传递机制 / Parameter binding",
+  "sections": ["6.4.1"],
+  "program": "program.mal",
+  "checks": [
+    {"name": "call-by-value: callee changes are invisible", "expect_output": [1, 2, 1, 5]},
+    {"name": "call-by-reference: swap works, bump(i,i) aliases", "mutations": ["all-reference"], "expect_output": [2, 1, 12, 720]},
+    {"name": "call-by-value-result: copy-out order decides bump(i,i)", "mutations": ["all-value-result"], "expect_output": [2, 1, 11, 605]},
+    {"name": "call-by-name: term re-evaluated on every use (Jensen)", "mutations": ["all-name"], "expect_output": [2, 1, 12, 55],
+     "expect_stats": {"thunk-evals": 27}},
+    {"name": "only sum's k and term by name", "mutations": ["jensen-only"], "expect_output": [1, 2, 1, 55]}
+  ],
+  "mutations": {
+    "all-reference": {"define": "pass-mode", "body": "(lambda (proc param) \"reference\")",
+      "reason": "bind every formal by reference",
+      "explain": "形参是实参的地址：被调用者的写入直接改调用者的变量；bump(i,i) 的两个形参是同一个地址。"},
+    "all-value-result": {"define": "pass-mode", "body": "(lambda (proc param) \"value-result\")",
+      "reason": "bind every formal by value-result",
+      "explain": "进入时复制、返回时按形参顺序写回；bump(i,i) 中后写回的 v 覆盖了 u。"},
+    "all-name": {"define": "pass-mode", "body": "(lambda (proc param) \"name\")",
+      "reason": "bind every formal by name (thunks)",
+      "explain": "形参是一个 thunk（表达式 + 调用者的 AR），每次使用都重新求值。"},
+    "jensen-only": {"define": "pass-mode",
+      "body": "(lambda (proc param) (if (and (equal? proc \"sum\") (or (equal? param \"k\") (equal? param \"term\"))) \"name\" \"value\"))",
+      "reason": "by name only where Jensen's device needs it",
+      "explain": "策略可以按过程、按形参区分；这里只让 sum 的 k 和 term 按名传递。"}
+  }
+}

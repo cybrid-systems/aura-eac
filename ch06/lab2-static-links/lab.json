@@ -1,0 +1,30 @@
+{
+  "title": "静态链与动态链 / Static links vs dynamic links",
+  "sections": ["6.3.1", "6.4.3"],
+  "program": "program.mal",
+  "focus_break": "in r",
+  "checks": [
+    {"name": "lexical scoping: r sees main's x", "expect_output": [7, 8, 9]},
+    {"name": "6 non-local accesses x 2 static hops, plus 1 hop to link q (called from p) to main", "expect_stats": {"static-follows": 13, "nonlocal-accesses": 6}},
+    {"name": "static link set to the caller -> r silently reads p's x", "mutations": ["link-to-caller"],
+     "expect_output": [100, 7, 8]},
+    {"name": "non-local access walks the dynamic chain -> same silent bug", "mutations": ["access-dynamic-chain"],
+     "expect_output": [100, 7, 8]},
+    {"name": "one hop too few -> lands in q, which has no x", "mutations": ["access-off-by-one"],
+     "expect_error": "took 1 static hop(s) and reached"}
+  ],
+  "mutations": {
+    "link-to-caller": {"define": "static-link-hops",
+      "body": "(lambda (caller-level callee-level) 0)",
+      "reason": "wrong: point every static link at the caller's AR",
+      "explain": "把静态链当成动态链用：p 调 q 时，q 的静态链指向了 p 而不是 main，于是 r 找到的是 p 的 x。"},
+    "access-dynamic-chain": {"define": "access-chain",
+      "body": "(lambda () \"dynamic\")",
+      "reason": "wrong: resolve non-local names along callers (dynamic scoping)",
+      "explain": "沿调用者（动态链）找非局部变量，相当于动态作用域；结果取决于谁调用了 q。"},
+    "access-off-by-one": {"define": "access-hops",
+      "body": "(lambda (use-level decl-level) (- (- use-level decl-level) 1))",
+      "reason": "wrong: one static hop too few",
+      "explain": "层差算少了一层：r 在第 3 层，x 声明在第 1 层，应走 2 跳。"}
+  }
+}
