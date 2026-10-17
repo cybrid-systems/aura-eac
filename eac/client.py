@@ -73,7 +73,7 @@ class Engine:
         return r
 
     def load(self, program) -> dict:
-        if isinstance(program, (str, Path)) and str(program).endswith(".mal"):
+        if isinstance(program, (str, Path)) and str(program).endswith((".mal", ".csl")):
             program = sexpr.parse(Path(program).read_text())
         elif isinstance(program, str):
             program = sexpr.parse(program)

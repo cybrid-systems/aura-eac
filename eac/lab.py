@@ -8,7 +8,8 @@ from pathlib import Path
 
 from .client import ROOT, Engine
 
-CHAPTER_POLICY = {"ch06": ROOT / "ch06" / "policy.aura"}
+CHAPTER_POLICY = {"ch06": ROOT / "ch06" / "policy.aura", "ch07": ROOT / "ch07" / "policy.aura"}
+CHAPTER_ENGINE = {"ch06": ROOT / "engine" / "engine.aura", "ch07": ROOT / "engine" / "codeshape.aura"}
 
 
 @dataclass
@@ -47,7 +48,11 @@ class Lab:
             raise KeyError(f"{self.name}: no mutation {name!r}; known: {', '.join(self.spec.get('mutations', {}))}")
 
     def engine(self) -> Engine:
-        return Engine(self.policy)
+        return Engine(self.policy, CHAPTER_ENGINE[self.chapter])
+
+    def program_for(self, name: str | None) -> Path:
+        """A check's / mutation's program: a key of "programs", or the lab's default "program"."""
+        return self.program(name) if name else self.program()
 
 
 def apply(eng: Engine, lab: Lab, names) -> None:
@@ -78,7 +83,29 @@ def _check_result(chk: dict, r: dict) -> list[str]:
     for k, v in chk.get("expect_stats", {}).items():
         if (r.get("stats") or {}).get(k, 0) != v:
             errs.append(f"stat {k} = {(r.get('stats') or {}).get(k, 0)} != {v}")
+    if "expect_matches_reference" in chk and matches_reference(r) != chk["expect_matches_reference"]:
+        errs.append(f"matches reference = {matches_reference(r)} (want {chk['expect_matches_reference']}): "
+                    f"code printed {r.get('output')} / error {r.get('error') or None}; "
+                    f"the language says {r.get('reference')} / error {r.get('ref_error') or None}")
+    if "expect_cases" in chk:
+        got = [c["strategy"] for c in r.get("cases") or []]
+        if got != chk["expect_cases"]:
+            errs.append(f"case strategies {got} != {chk['expect_cases']}")
     return errs
+
+
+def _errkind(e):
+    if not e:
+        return None
+    for k in ("bounds", "division"):
+        if k in e:
+            return k
+    return e
+
+
+def matches_reference(r: dict) -> bool:
+    """Chapter 7: the emitted code computes what the source program means (same output, same kind of error)."""
+    return r.get("output") == r.get("reference") and _errkind(r.get("error")) == _errkind(r.get("ref_error"))
 
 
 def run_checks(lab: Lab, eng: Engine | None = None) -> list[dict]:
@@ -88,13 +115,22 @@ def run_checks(lab: Lab, eng: Engine | None = None) -> list[dict]:
     try:
         if "stages" in lab.spec:
             return run_stages(lab, eng)
-        eng.load(lab.program())
+        loaded = chk_prog = None
         base_src = eng.source()
         for chk in lab.spec.get("checks", []):
+            chk_prog = chk.get("program")
+            if loaded != (chk_prog or "<default>"):
+                eng.load(lab.program_for(chk_prog))
+                loaded = chk_prog or "<default>"
             muts = chk.get("mutations", [])
             apply(eng, lab, muts)
             r = eng.run()
             errs = _check_result(chk, r)
+            for spec, want in chk.get("expect_address", {}).items():
+                arr, *idx = spec.split()
+                got = eng.address(arr, *idx)
+                if got.get("address") != want:
+                    errs.append(f"address of {arr}[{','.join(idx)}] = {got.get('address')} != {want} ({got.get('error', '')})")
             unwind(eng, len(muts))
             if eng.source() != base_src:
                 errs.append("rollback did not restore the workspace source byte-for-byte")
@@ -202,7 +238,68 @@ def render_trace(trace: list) -> str:
     return "\n".join(lines)
 
 
+def fmt_iloc(ins: list, syms: dict | None = None) -> str:
+    """One ILOC instruction as text. syms: rarp offset -> variable name."""
+    syms = syms or {}
+    op, a = ins[0], ins[1:]
+
+    def at(off):
+        return f"@{syms[off]}" if off in syms else str(off)
+    if op == "label":
+        return f"{a[0]}:"
+    if op == "loadI":
+        return f"    loadI   {a[0]} => {a[1]}"
+    if op == "loadAI":
+        return f"    loadAI  {a[0]}, {at(a[1])} => {a[2]}"
+    if op == "storeAI":
+        return f"    storeAI {a[0]} => {a[1]}, {at(a[2])}"
+    if op in ("load", "i2i"):
+        return f"    {op:<7} {a[0]} => {a[1]}"
+    if op == "store":
+        return f"    store   {a[0]} => {a[1]}"
+    if op == "cbr":
+        return f"    cbr     {a[0]} -> {a[1]}, {a[2]}"
+    if op in ("jumpI", "jump"):
+        return f"    {op:<7} -> {a[0]}"
+    if op in ("write",):
+        return f"    write   {a[0]}"
+    if op == "trap":
+        return f"    trap    \"{a[0]}\""
+    if op == "halt":
+        return "    halt"
+    return f"    {op:<7} {a[0]}, {a[1]} => {a[2]}"
+
+
+def render_code(r: dict) -> str:
+    syms = {off: v for v, off in ((r.get("symbols") or {}).get("vars") or [])}
+    return "\n".join(fmt_iloc(i, syms) for i in r.get("code") or [])
+
+
+STAT_KEYS = ["registers", "code-size", "ops", "loads", "stores", "mults", "cmps", "branches", "jumps", "table-words"]
+
+
+def render_run07(r: dict, show_code: bool = False) -> str:
+    parts = []
+    if show_code:
+        parts.append(render_code(r))
+    st = r.get("stats") or {}
+    parts.append("stats: " + "  ".join(f"{k}={st.get(k, 0)}" for k in STAT_KEYS if k in st or k == "registers"))
+    if r.get("cases"):
+        parts.append("case statements: " + ", ".join(f"{c['arms']} arms keys {c['lo']}..{c['hi']} -> {c['strategy']}"
+                                                     for c in r["cases"]))
+    arrs = (r.get("symbols") or {}).get("arrays") or []
+    if arrs:
+        parts.append("arrays: " + ", ".join(f"{n} {lay} base={b} dope={d}" for n, lay, b, d in arrs))
+    ok = matches_reference(r)
+    parts.append(f"ILOC output: {r.get('output')}" + (f"   ERROR: {r['error']}" if r.get("error") else ""))
+    parts.append(f"language   : {r.get('reference')}" + (f"   ERROR: {r['ref_error']}" if r.get("ref_error") else "")
+                 + f"   -> {'matches' if ok else 'DOES NOT MATCH (miscompiled)'}")
+    return "\n".join(parts)
+
+
 def render_run(r: dict, focus: str | None = None, trace: bool = True) -> str:
+    if "reference" in r:
+        return render_run07(r, show_code=trace)
     parts = []
     if trace:
         parts.append(render_trace(r.get("trace") or []))
@@ -229,8 +326,11 @@ def minimal_loop(lab: Lab, mutation: str, show_trace: bool = False) -> tuple[str
     out = []
     m = lab.mutation(mutation)
     focus = lab.spec.get("focus_break")
+    ch7 = lab.chapter != "ch06"
+    if ch7:
+        show_trace = show_trace or bool(m.get("show_code"))
     with lab.engine() as eng:
-        eng.load(lab.program())
+        eng.load(lab.program_for(m.get("program")))
         src0 = eng.source()
         r0 = eng.run()
         out.append(f"== 1. 正确约定 / correct convention ({m['define']} v0)")
@@ -251,6 +351,13 @@ def minimal_loop(lab: Lab, mutation: str, show_trace: bool = False) -> tuple[str
             "restored_output": r2.get("output"), "restored": same and r2.get("output") == r0.get("output"),
             "observable": r1.get("output") != r0.get("output") or bool(r1.get("error")),
         }
+        if ch7:
+            verdict.update({"matches_reference": [matches_reference(r0), matches_reference(r1), matches_reference(r2)],
+                            "stats_changed": {k: [(r0.get("stats") or {}).get(k, 0), (r1.get("stats") or {}).get(k, 0)]
+                                              for k in STAT_KEYS
+                                              if (r0.get("stats") or {}).get(k, 0) != (r1.get("stats") or {}).get(k, 0)}})
+            verdict["observable"] = verdict["observable"] or bool(verdict["stats_changed"])
+            verdict["restored"] = verdict["restored"] and matches_reference(r2) and r2.get("stats") == r0.get("stats")
         out.append(f"\nverdict: {json.dumps(verdict, ensure_ascii=False)}")
     return "\n".join(out), verdict
 

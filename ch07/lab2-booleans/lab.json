@@ -1,0 +1,145 @@
+{
+  "title": "布尔值与关系运算的编码 / Boolean and relational values",
+  "sections": [
+    "7.4.1",
+    "7.4.2"
+  ],
+  "program": "program.csl",
+  "programs": {
+    "guard": {
+      "file": "guard.csl"
+    }
+  },
+  "checks": [
+    {
+      "name": "v0 (numerical for values, positional for branches, short-circuit only when observable)",
+      "expect_output": [
+        1,
+        0,
+        100,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        3
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "branches": 17,
+        "ops": 173
+      }
+    },
+    {
+      "name": "or as integer add: p prints 2, not a boolean",
+      "mutations": [
+        "or-as-add"
+      ],
+      "expect_matches_reference": false,
+      "expect_output": [
+        2,
+        0,
+        100,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        3
+      ]
+    },
+    {
+      "name": "no short-circuit: inc! runs on every iteration, n = 6 instead of 3",
+      "mutations": [
+        "no-short-circuit"
+      ],
+      "expect_matches_reference": false,
+      "expect_output": [
+        1,
+        0,
+        100,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "guard works with short-circuit",
+      "program": "guard",
+      "expect_output": [
+        2
+      ],
+      "expect_matches_reference": true
+    },
+    {
+      "name": "no short-circuit: the guarded division runs with d = 0",
+      "program": "guard",
+      "mutations": [
+        "no-short-circuit-guard"
+      ],
+      "expect_error": "division by zero",
+      "expect_matches_reference": false
+    },
+    {
+      "name": "positional everywhere: same output, 25 branches executed instead of 17, 100 instructions instead of 69",
+      "mutations": [
+        "all-positional"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "branches": 25,
+        "code-size": 100
+      }
+    },
+    {
+      "name": "short-circuit everything: same output, 20 branches executed, 171 instructions executed",
+      "mutations": [
+        "always-short-circuit"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "branches": 20,
+        "ops": 171
+      }
+    }
+  ],
+  "mutations": {
+    "or-as-add": {
+      "define": "bool-op-code",
+      "body": "(lambda (op) (if (equal? op \"and\") \"mult\" \"add\"))",
+      "reason": "wrong numerical encoding: or as integer add",
+      "explain": "数值编码下，用乘法实现 and 没问题（0/1 相乘仍是 0/1），但用加法实现 or，两边都为真时得到 2，不再是合法的布尔值。"
+    },
+    "no-short-circuit": {
+      "define": "short-circuit?",
+      "body": "(lambda (op rhs-effects rhs-may-trap) #f)",
+      "reason": "wrong: never short-circuit, evaluate both operands",
+      "explain": "and/or 两边都算：k 为偶数时本来不该执行的 (inc! n) 也执行了，n 从 3 变成 6，程序不报错。"
+    },
+    "no-short-circuit-guard": {
+      "define": "short-circuit?",
+      "body": "(lambda (op rhs-effects rhs-may-trap) #f)",
+      "program": "guard",
+      "reason": "wrong: never short-circuit; the division guard stops guarding",
+      "explain": "(and (!= d 0) (> (/ x d) 4))：不短路时 d = 0 也会去做除法，生成的代码在运行时除零。"
+    },
+    "all-positional": {
+      "define": "bool-encoding",
+      "body": "(lambda (context) \"positional\")",
+      "reason": "positional encoding everywhere, even when the value is stored",
+      "explain": "值上下文也用控制流编码：每个布尔值都要经过分支再写 1 或 0，结果对，分支和指令多了。"
+    },
+    "always-short-circuit": {
+      "define": "short-circuit?",
+      "body": "(lambda (op rhs-effects rhs-may-trap) #t)",
+      "reason": "short-circuit every and/or, even pure ones",
+      "explain": "纯操作数也短路：结果对，代码里多了条件分支；有时能少执行几条指令，有时反而更多。"
+    }
+  }
+}

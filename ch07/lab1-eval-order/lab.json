@@ -1,0 +1,118 @@
+{
+  "title": "求值顺序与寄存器压力 / Evaluation order and register pressure",
+  "sections": [
+    "7.3.1",
+    "7.3.2",
+    "7.3.3"
+  ],
+  "program": "program.csl",
+  "programs": {
+    "effects": {
+      "file": "effects.csl"
+    }
+  },
+  "show_code": true,
+  "checks": [
+    {
+      "name": "Sethi-Ullman order: correct result with 3 registers",
+      "expect_output": [
+        -370,
+        11
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "registers": 3
+      }
+    },
+    {
+      "name": "left operand first: same result, 6 registers (right-deep e2 keeps every leaf live)",
+      "mutations": [
+        "left-first"
+      ],
+      "expect_output": [
+        -370,
+        11
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "registers": 6
+      }
+    },
+    {
+      "name": "smaller subtree first: 6 registers",
+      "mutations": [
+        "smaller-first"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "registers": 6
+      }
+    },
+    {
+      "name": "labels without the +1 on ties: ordering degenerates to left-first, 6 registers",
+      "mutations": [
+        "flat-labels"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "registers": 6
+      }
+    },
+    {
+      "name": "side effect on the right: operands stay in source order, prints 17 (3 registers)",
+      "program": "effects",
+      "expect_output": [
+        17,
+        6
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "registers": 3
+      }
+    },
+    {
+      "name": "reordering across inc!: 2 registers but prints 18, miscompiled silently",
+      "program": "effects",
+      "mutations": [
+        "reorder-across-effects"
+      ],
+      "expect_output": [
+        18,
+        6
+      ],
+      "expect_matches_reference": false,
+      "expect_stats": {
+        "registers": 2
+      }
+    }
+  ],
+  "mutations": {
+    "left-first": {
+      "define": "eval-first",
+      "body": "(lambda (op lneed rneed) \"left\")",
+      "reason": "always generate the left operand first",
+      "show_code": true,
+      "explain": "总是先算左子树：右深的 e2 每进一层都要多占一个寄存器，6 个叶子同时活着。结果仍然正确，只是寄存器需求从 3 涨到 6。"
+    },
+    "smaller-first": {
+      "define": "eval-first",
+      "body": "(lambda (op lneed rneed) (if (< rneed lneed) \"right\" \"left\"))",
+      "reason": "wrong heuristic: generate the operand that needs FEWER registers first",
+      "explain": "反着用 Sethi-Ullman：先算需求小的子树，它的结果要一直占着一个寄存器，等需求大的子树算完。"
+    },
+    "flat-labels": {
+      "define": "su-need",
+      "body": "(lambda (l r) (if (> l r) l r))",
+      "reason": "wrong labelling: forget the +1 when both subtrees need the same number of registers",
+      "explain": "标号时漏了“两边需求相等要 +1”，所有结点的需求都成了 1，排序信息全丢了，退化成从左到右。"
+    },
+    "reorder-across-effects": {
+      "define": "may-reorder?",
+      "body": "(lambda (left-effects right-effects) #t)",
+      "program": "effects",
+      "show_code": true,
+      "reason": "wrong: reorder operands even when one has a side effect",
+      "explain": "右操作数 (* (inc! x) 2) 需要的寄存器更多，于是被提前算；inc! 先把 x 改成 6，左边再读 x 就成了 6。程序照常结束，打印 18 而不是 17。"
+    }
+  }
+}

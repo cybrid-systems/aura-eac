@@ -1,0 +1,108 @@
+{
+  "title": "case 语句的三种实现 / Implementing case statements",
+  "sections": [
+    "7.8.3"
+  ],
+  "program": "program.csl",
+  "programs": {
+    "adjacent": {
+      "file": "adjacent.csl"
+    }
+  },
+  "checks": [
+    {
+      "name": "density policy: dense -> jump table, 3 arms -> linear, sparse -> binary search",
+      "expect_cases": [
+        "jump",
+        "linear",
+        "binary",
+        "binary",
+        "binary"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "cmps": 109,
+        "table-words": 6
+      }
+    },
+    {
+      "name": "linear everywhere: same output, 141 comparisons",
+      "mutations": [
+        "always-linear"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "cmps": 141,
+        "table-words": 0
+      }
+    },
+    {
+      "name": "jump tables everywhere: 77 comparisons but 15011 table words",
+      "mutations": [
+        "always-jump"
+      ],
+      "expect_matches_reference": true,
+      "expect_stats": {
+        "cmps": 77,
+        "table-words": 15011
+      }
+    },
+    {
+      "name": "binary search over unsorted keys: k = 1 and the 10 lookup fall to else",
+      "mutations": [
+        "binary-unsorted"
+      ],
+      "expect_matches_reference": false
+    },
+    {
+      "name": "adjacent tables with range check: selector 5 takes else in both",
+      "program": "adjacent",
+      "expect_output": [
+        10,
+        99,
+        20,
+        999
+      ],
+      "expect_matches_reference": true
+    },
+    {
+      "name": "no range check: selector 5 jumps into the second statement's table, silently skipping output",
+      "program": "adjacent",
+      "mutations": [
+        "no-range-check"
+      ],
+      "expect_output": [
+        21,
+        999
+      ],
+      "expect_matches_reference": false
+    }
+  ],
+  "mutations": {
+    "always-linear": {
+      "define": "case-strategy",
+      "body": "(lambda (n lo hi) \"linear\")",
+      "reason": "linear search for every case statement",
+      "explain": "全部线性查找：结果对，但比较次数随分支数线性增长，落到 else 的选择子要把每个键都比一遍。"
+    },
+    "always-jump": {
+      "define": "case-strategy",
+      "body": "(lambda (n lo hi) \"jump\")",
+      "reason": "jump table for every case statement, however sparse",
+      "explain": "稀疏的键（1..5000 里只有 6 个）也建跳转表：比较次数最少，但表有 5000 个字。"
+    },
+    "binary-unsorted": {
+      "define": "sort-case-keys?",
+      "body": "(lambda () #f)",
+      "reason": "wrong: binary search over the keys in source order",
+      "explain": "二分查找要求键有序；按源码顺序二分，k = 1 被引到错误的一半，静默落进 else。"
+    },
+    "no-range-check": {
+      "define": "jump-range-check?",
+      "body": "(lambda () #f)",
+      "program": "adjacent",
+      "reason": "wrong: index the jump table without checking the selector range",
+      "explain": "不做范围检查：k = 5 越过第一张表的末尾，读到的是紧挨着的第二张表的第一项，于是跳进了第二个 case 的分支，中间的输出全被跳过，程序不报错。"
+    }
+  }
+}

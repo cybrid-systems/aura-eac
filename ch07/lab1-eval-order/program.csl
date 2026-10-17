@@ -1,0 +1,11 @@
+; Lab 1 (ch07): two expressions with the same operators but different tree shapes.
+;   e1 is bushy:      (a*b) - ((c+d) * (e-f))
+;   e2 is right-deep: a + (b * (c - (d / (e + f))))
+; Operands are evaluated left to right in the language; the code generator may reorder them only when
+; nobody can tell (no side effects).
+(program
+  (vars a b c d e f)
+  (body
+    (set! a 2) (set! b 3) (set! c 7) (set! d 40) (set! e 9) (set! f 1)
+    (print (- (* a b) (* (+ c d) (- e f))))
+    (print (+ a (* b (- c (/ d (+ e f))))))))

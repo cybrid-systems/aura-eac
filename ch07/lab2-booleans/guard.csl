@@ -1,0 +1,9 @@
+; Lab 2, guard: the right operand of `and` can trap; short-circuit evaluation is what makes the guard work.
+(program
+  (vars x d hits)
+  (body
+    (set! x 12) (set! d 3) (set! hits 0)
+    (while (>= d 0)
+      (if (and (!= d 0) (> (/ x d) 4)) (set! hits (+ hits 1)))
+      (set! d (- d 1)))
+    (print hits)))

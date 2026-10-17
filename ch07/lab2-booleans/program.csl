@@ -1,0 +1,17 @@
+; Lab 2 (ch07): booleans in value context (stored / printed) and in branch context (if / while).
+(program
+  (vars a b c d p k n)
+  (body
+    (set! a 1) (set! b 2) (set! c 1) (set! d 3)
+    ; value context, both operands pure: no need to short-circuit
+    (set! p (or (< a b) (< c d)))
+    (print p)
+    (print (and (< a b) (not (< c d))))
+    ; branch context
+    (if (and (< a b) (< c d)) (print 100) (print 200))
+    ; the right operand has a side effect: the language says it runs only when the left one is false
+    (set! k 0)
+    (while (< k 6)
+      (if (or (= (% k 2) 0) (> (inc! n) 0)) (print k))
+      (set! k (+ k 1)))
+    (print n)))

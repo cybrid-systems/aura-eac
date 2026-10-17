@@ -1,0 +1,21 @@
+; Lab 4 (ch07): three case statements with different key sets, run for selectors 0..11 and a few big ones.
+;   dense:  keys 1..6, all present          small:  three keys
+;   sparse: keys spread over 1..5000, written in source order 100 1 5000 10 1000 50
+(program
+  (vars k s)
+  (body
+    (set! k 0)
+    (while (< k 12)
+      (case k (1 (print 11)) (2 (print 12)) (3 (print 13)) (4 (print 14)) (5 (print 15)) (6 (print 16)) (else (print 0)))
+      (set! k (+ k 1)))
+    (set! k 0)
+    (while (< k 5)
+      (case k (0 (print 70)) (2 (print 72)) (4 (print 74)) (else (print 7)))
+      (set! k (+ k 1)))
+    (set! s 0)
+    (while (< s 7)
+      (set! k (* s s s))
+      (case k (100 (print 1)) (1 (print 2)) (5000 (print 3)) (10 (print 4)) (1000 (print 5)) (50 (print 6)) (else (print 9)))
+      (set! s (+ s 1)))
+    (case 5000 (100 (print 1)) (1 (print 2)) (5000 (print 3)) (10 (print 4)) (1000 (print 5)) (50 (print 6)) (else (print 9)))
+    (case 10 (100 (print 1)) (1 (print 2)) (5000 (print 3)) (10 (print 4)) (1000 (print 5)) (50 (print 6)) (else (print 9)))))
