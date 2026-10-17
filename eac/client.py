@@ -36,9 +36,9 @@ class AuraError(RuntimeError):
 class Engine:
     """One Aura process = one workspace (the policies) + one loaded MAL program."""
 
-    def __init__(self, policy: str | Path | None = None):
+    def __init__(self, policy: str | Path | None = None, engine: str | Path | None = None):
         aura, env = aura_env()
-        self.p = subprocess.Popen([aura, str(ROOT / "engine" / "engine.aura")], stdin=subprocess.PIPE,
+        self.p = subprocess.Popen([aura, str(engine or ROOT / "engine" / "engine.aura")], stdin=subprocess.PIPE,
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1,
                                   env=env, cwd=str(ROOT))
         r = self._read()
@@ -84,10 +84,14 @@ class Engine:
 
     def run(self) -> dict:
         r = self.call("RUN")
-        for k in ("output", "trace", "snaps", "frames"):     # Aura encodes an empty list as null
+        for k in ("output", "trace", "snaps", "frames", "reference", "code", "cases"):     # Aura encodes an empty list as null
             if k in r and r[k] is None:
                 r[k] = []
         return r
+
+    def address(self, array: str, *idx) -> dict:
+        """Chapter 7 engine only: byte address the current policies give array[idx...] (+ the ILOC that computes it)."""
+        return self.call("ADDR", array, *[str(i) for i in idx])
 
     def mutate(self, name: str, body: str, reason: str = "lab mutation") -> dict:
         return self.call("MUTATE", name, body, reason)

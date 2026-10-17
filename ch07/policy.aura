@@ -1,0 +1,81 @@
+;; Chapter 7 (3rd ed. "Code Shape") code-generation choices, version 0 (sensible textbook defaults).
+;; Loaded into the Aura workspace with set-code + eval-current. engine/codeshape.aura asks these defines
+;; every time it generates ILOC; the labs rewrite them with mutate:rebind and undo with ast:restore.
+;; Workspace rules: pure functions of their arguments only (aura#4587), no recursion (aura#4583),
+;; no filter/map (aura#4584).
+
+;; ---- 7.3 arithmetic operators: evaluation order and register pressure (lab 1)
+;; Register need of a binary node whose operands need l and r registers (Sethi-Ullman labelling): equal
+;; needs cost one extra register, otherwise the bigger subtree's need dominates.
+(define su-need
+  (lambda (l r)
+    (if (= l r) (+ l 1) (if (> l r) l r))))
+
+;; Which operand subtree to generate first. Evaluating the subtree that needs more registers first keeps
+;; only one register live while the other subtree runs.
+(define eval-first
+  (lambda (op lneed rneed)
+    (if (> rneed lneed) "right" "left")))
+
+;; The source language evaluates operands left to right. The generator may swap them only when the swap
+;; cannot be observed: neither side has a side effect.
+(define may-reorder?
+  (lambda (left-effects right-effects)
+    (not (or left-effects right-effects))))
+
+;; ---- 7.4 boolean and relational values (lab 2)
+;; context is "value" (the result is stored or printed) or "branch" (the result only picks a branch).
+;; "numerical": materialise 0/1 in a register; "positional": encode the value as the place control reaches.
+(define bool-encoding
+  (lambda (context)
+    (if (equal? context "branch") "positional" "numerical")))
+
+;; Short-circuit an and/or? The language requires it whenever skipping the right operand can be observed:
+;; it has a side effect, or it can trap (division, array access). Otherwise straight-line code is fine.
+(define short-circuit?
+  (lambda (op rhs-effects rhs-may-trap)
+    (or rhs-effects rhs-may-trap)))
+
+;; ILOC opcode for a non-short-circuit and/or on 0/1 values.
+(define bool-op-code
+  (lambda (op)
+    (if (equal? op "and") "and" "or")))
+
+;; ---- 7.5 array addressing (lab 3)
+;; "row" (row-major), "column" (column-major) or "indirect" (indirection vectors, row by row).
+(define array-layout
+  (lambda (name)
+    "row"))
+;; number of elements along a dimension declared lo..hi
+(define extent
+  (lambda (lo hi)
+    (+ (- hi lo) 1)))
+;; value subtracted from an index before it is scaled (the dimension's lower bound)
+(define index-origin
+  (lambda (lo)
+    lo))
+;; emit a range check for every subscript?
+(define bounds-check?
+  (lambda (name)
+    #t))
+;; read bounds and extents from the array's dope vector at run time (as for an array parameter whose shape
+;; is unknown at compile time) instead of folding them in as constants?
+(define dope-vector?
+  (lambda (name)
+    #f))
+
+;; ---- 7.8.3 case statements (lab 4)
+;; n arms with keys spanning lo..hi. Dense key sets get a jump table, small ones a linear search, the rest
+;; a binary search.
+(define case-strategy
+  (lambda (n lo hi)
+    (if (<= n 3) "linear"
+        (if (<= (+ (- hi lo) 1) (* 2 n)) "jump" "binary"))))
+;; a jump table must reject selectors outside lo..hi before indexing the table
+(define jump-range-check?
+  (lambda ()
+    #t))
+;; binary search needs the keys in sorted order
+(define sort-case-keys?
+  (lambda ()
+    #t))
