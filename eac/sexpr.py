@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-_TOK = re.compile(r";[^\n]*|\(|\)|[^\s()]+")
+_TOK = re.compile(r';[^\n]*|"[^"]*"|\(|\)|[^\s()]+')
 
 
 def parse(text: str):
@@ -12,6 +12,8 @@ def parse(text: str):
     pos = 0
 
     def atom(t: str):
+        if t.startswith('"') and t.endswith('"') and len(t) >= 2:
+            return t[1:-1]          # string literal (labels); MAL has no string values
         if re.fullmatch(r"-?\d+", t):
             return int(t)
         return t

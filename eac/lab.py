@@ -169,6 +169,7 @@ def fmt_val(v) -> str:
 
 def render_frames(frames: list, title: str = "") -> str:
     lines = [f"── {title}" if title else ""]
+    names = {f["id"]: f["proc"] for f in frames}
     for f in frames:
         if f["proc"] == "%program" and not f["fields"]:
             lines.append("  #0 %program (no globals)")
@@ -177,9 +178,14 @@ def render_frames(frames: list, title: str = "") -> str:
         for off, name, val in f["fields"]:
             arrow = ""
             if name in ("static", "dynamic") and isinstance(val, int):
-                arrow = f"  -> AR #{val}"
+                arrow = f"  -> AR #{val} ({names.get(val, '?')})"
             lines.append(f"      [{off}] {name:<8} {fmt_val(val)}{arrow}")
     return "\n".join(l for l in lines if l != "")
+
+
+def _how(h) -> str:
+    return f"static link: {h} hop(s) from caller" if isinstance(h, int) else {
+        "global": "top-level: no link needed", "method": "method call"}.get(h, h)
 
 
 def render_trace(trace: list) -> str:
@@ -188,7 +194,7 @@ def render_trace(trace: list) -> str:
         pad = "  " * (t.get("depth", 1) - 1)
         if t["ev"] == "call":
             args = ", ".join(fmt_val(a) for a in (t.get("args") or []))
-            lines.append(f"{pad}call   #{t['id']} {t['proc']}({args})   static->#{t['static']} dynamic->#{t['dynamic']} [{t['how']}]")
+            lines.append(f"{pad}call   #{t['id']} {t['proc']}({args})   static->#{t['static']} dynamic->#{t['dynamic']} [{_how(t['how'])}]")
         elif t["ev"] == "return":
             lines.append(f"{pad}return #{t['id']} {t['proc']} = {fmt_val(t['value'])}")
         elif t["ev"] == "send":
