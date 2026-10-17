@@ -22,13 +22,13 @@ class TestReader(unittest.TestCase):
 
 class TestLabs(unittest.TestCase):
     def test_all_checks(self):
-        for lb in L.all_labs():
+        for lb in L.all_labs("ch06"):
             for c in L.run_checks(lb):
                 with self.subTest(lab=lb.name, check=c["check"]):
                     self.assertTrue(c["ok"], c["errors"])
 
     def test_minimal_loop_every_mutation(self):
-        for lb in L.all_labs():
+        for lb in L.all_labs("ch06"):
             if "program" not in lb.spec:
                 continue
             for m in lb.spec["mutations"]:
@@ -74,7 +74,7 @@ class TestLabs(unittest.TestCase):
 
 class TestExercises(unittest.TestCase):
     def test_generators_self_check(self):
-        for c in X.CONCEPTS:
+        for c in [c for c in X.CONCEPTS if X.chapter_of(c) == "ch06"]:
             for level in (1, 2, 3):
                 for contrast in (False, True):
                     with self.subTest(concept=c, level=level, contrast=contrast):
@@ -91,7 +91,7 @@ class TestExercises(unittest.TestCase):
             prof = {"misconceptions": {"static-vs-dynamic": 1.0}, "skill": {}}
             picks = []
             for _ in range(10):
-                ex, why = pr.next_exercise()
+                ex, why = pr.next_exercise("ch06")
                 picks.append(ex.concept)
                 pr.answer(ex.id, X.simulated_answer(ex, prof, rng))
             pr.save()
@@ -103,10 +103,11 @@ class TestExercises(unittest.TestCase):
     def test_correct_learner_levels_up(self):
         with tempfile.TemporaryDirectory() as d:
             pr = X.Progress.load(Path(d) / "p.json")
-            for _ in range(len(X.CONCEPTS) * 4):   # EWMA 0.4 -> 0.64 -> 0.78 -> 0.87
-                ex, _ = pr.next_exercise()
+            ch6 = [c for c in X.CONCEPTS if X.chapter_of(c) == "ch06"]
+            for _ in range(len(ch6) * 4):   # EWMA 0.4 -> 0.64 -> 0.78 -> 0.87
+                ex, _ = pr.next_exercise("ch06")
                 pr.answer(ex.id, ex.answer)
-            self.assertTrue(all(pr.mastered(c) for c in X.CONCEPTS), pr.status())
+            self.assertTrue(all(pr.mastered(c) for c in ch6), pr.status("ch06"))
 
 
 if __name__ == "__main__":

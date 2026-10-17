@@ -283,7 +283,7 @@ def render_run07(r: dict, show_code: bool = False) -> str:
     if show_code:
         parts.append(render_code(r))
     st = r.get("stats") or {}
-    parts.append("stats: " + "  ".join(f"{k}={st.get(k, 0)}" for k in STAT_KEYS if k in st or k == "registers"))
+    parts.append("stats: " + "  ".join(f"{k}={st.get(k, 0)}" for k in STAT_KEYS if st.get(k) or k == "registers"))
     if r.get("cases"):
         parts.append("case statements: " + ", ".join(f"{c['arms']} arms keys {c['lo']}..{c['hi']} -> {c['strategy']}"
                                                      for c in r["cases"]))
@@ -329,16 +329,28 @@ def minimal_loop(lab: Lab, mutation: str, show_trace: bool = False) -> tuple[str
     ch7 = lab.chapter != "ch06"
     if ch7:
         show_trace = show_trace or bool(m.get("show_code"))
+    addr_specs = lab.spec.get("addr", []) if ch7 else []
+
+    def addresses(eng):
+        got = {}
+        for spec in addr_specs:
+            arr, *idx = spec.split()
+            got[f"{arr}[{','.join(idx)}]"] = eng.address(arr, *idx).get("address")
+        if got:
+            out.append("addresses: " + "  ".join(f"{k}={v}" for k, v in got.items()))
+        return got
     with lab.engine() as eng:
         eng.load(lab.program_for(m.get("program")))
         src0 = eng.source()
         r0 = eng.run()
         out.append(f"== 1. 正确约定 / correct convention ({m['define']} v0)")
         out.append(render_run(r0, focus, show_trace))
+        a0 = addresses(eng)
         mr = eng.mutate(m["define"], m["body"], m.get("reason", mutation))
         out.append(f"\n== 2. mutate:rebind {m['define']} -> {m['body']}   [{m.get('reason', '')}]  ok={mr.get('ok')}")
         r1 = eng.run()
         out.append(render_run(r1, focus, show_trace))
+        a1 = addresses(eng)
         if m.get("explain"):
             out.append(f"   说明: {m['explain']}")
         rb = eng.rollback()
@@ -346,6 +358,7 @@ def minimal_loop(lab: Lab, mutation: str, show_trace: bool = False) -> tuple[str
         same = eng.source() == src0
         out.append(f"\n== 3. ast:restore + eval-current  ok={rb.get('ok')}  source restored byte-for-byte: {same}")
         out.append(render_run(r2, focus, show_trace))
+        a2 = addresses(eng)
         verdict = {
             "baseline_output": r0.get("output"), "mutated_output": r1.get("output"), "mutated_error": r1.get("error"),
             "restored_output": r2.get("output"), "restored": same and r2.get("output") == r0.get("output"),
@@ -356,11 +369,19 @@ def minimal_loop(lab: Lab, mutation: str, show_trace: bool = False) -> tuple[str
                             "stats_changed": {k: [(r0.get("stats") or {}).get(k, 0), (r1.get("stats") or {}).get(k, 0)]
                                               for k in STAT_KEYS
                                               if (r0.get("stats") or {}).get(k, 0) != (r1.get("stats") or {}).get(k, 0)}})
-            verdict["observable"] = verdict["observable"] or bool(verdict["stats_changed"])
-            verdict["restored"] = verdict["restored"] and matches_reference(r2) and r2.get("stats") == r0.get("stats")
+            if a0 != a1:
+                verdict["addresses_changed"] = {k: [a0[k], a1[k]] for k in a0 if a0[k] != a1.get(k)}
+            verdict["observable"] = verdict["observable"] or bool(verdict["stats_changed"]) or a0 != a1
+            verdict["restored"] = (verdict["restored"] and matches_reference(r2) and r2.get("stats") == r0.get("stats")
+                                   and a2 == a0)
         out.append(f"\nverdict: {json.dumps(verdict, ensure_ascii=False)}")
     return "\n".join(out), verdict
 
 
-def all_labs(chapter: str = "ch06") -> list[Lab]:
-    return [Lab.open(p) for p in sorted((ROOT / chapter).iterdir()) if (p / "lab.json").exists()]
+CHAPTERS = ["ch06", "ch07"]
+
+
+def all_labs(chapter: str | None = None) -> list[Lab]:
+    """Labs of one chapter, or of every chapter when chapter is None."""
+    chs = [chapter] if chapter else CHAPTERS
+    return [Lab.open(p) for ch in chs for p in sorted((ROOT / ch).iterdir()) if (p / "lab.json").exists()]

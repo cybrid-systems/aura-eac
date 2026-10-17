@@ -24,7 +24,8 @@ POLICY = ROOT / "ch06" / "policy.aura"
 NAMES = ["alpha", "beta", "gamma", "delta", "eps", "zeta", "eta", "theta", "iota", "kappa", "lam", "mu", "nu", "xi",
          "omi", "pi", "rho", "sig", "tau", "ups", "phi", "chi", "psi", "omg"]
 
-# concept -> (lab, short description). Order = suggested study order.
+# concept -> (lab, short description). Order = suggested study order. Chapter 7 concepts are merged in at the
+# bottom of this file from eac/exercises07.py.
 CONCEPTS = {
     "ar-recursion": ("lab1-activation-records", "每次调用一个活动记录：递归时同一过程的多个 AR 同时存活"),
     "static-link-target": ("lab2-static-links", "被调用者的静态链指向词法父过程最近的 AR，而不是调用者"),
@@ -276,6 +277,11 @@ GENERATORS = {
 }
 
 
+def chapter_of(concept: str) -> str:
+    lab = CONCEPTS[concept][0]
+    return lab.split("/")[0] if "/" in lab else "ch06"
+
+
 def generate(concept: str, level: int, seed: int, contrast: bool = False) -> Exercise:
     ex = GENERATORS[concept](random.Random(f"{concept}:{level}:{seed}:{contrast}"), level, contrast)
     ex.id = f"{concept}-L{level}-{seed}{'-c' if contrast else ''}"
@@ -314,9 +320,12 @@ class Progress:
         open_conf = any(n > 0 and CONFUSION_CONCEPT[t] == c for t, n in self.data["confusions"].items())
         return bool(s) and s["attempts"] >= 3 and s["score"] >= 0.8 and s["level"] >= 2 and not open_conf
 
-    def pick(self) -> tuple[str, bool, str]:
-        """-> (concept, contrast?, reason). Confusions first, then unseen concepts, then the weakest one."""
-        conf = sorted(((n, t) for t, n in self.data["confusions"].items() if n > 0), reverse=True)
+    def pick(self, chapter: str | None = None) -> tuple[str, bool, str]:
+        """-> (concept, contrast?, reason). Confusions first, then unseen concepts, then the weakest one.
+        chapter: restrict to one chapter's concepts (None = all)."""
+        concepts = [c for c in CONCEPTS if chapter is None or chapter_of(c) == chapter]
+        conf = sorted(((n, t) for t, n in self.data["confusions"].items()
+                       if n > 0 and CONFUSION_CONCEPT[t] in concepts), reverse=True)
         recent = [h["concept"] for h in self.data["history"][-3:]]
         if conf:
             tag = conf[0][1]
@@ -324,16 +333,16 @@ class Progress:
             # interleave: after three contrast drills in a row on the same concept, practise something else once
             if not (len(recent) == 3 and all(r == c for r in recent)):
                 return c, True, f"recent confusion: {tag}"
-        for c in CONCEPTS:
+        for c in concepts:
             if c not in self.data["concepts"]:
                 return c, False, "not seen yet"
-        open_ = [c for c in CONCEPTS if not self.mastered(c) and not (len(recent) == 3 and all(r == c for r in recent))]
-        pool = open_ or list(CONCEPTS)
+        open_ = [c for c in concepts if not self.mastered(c) and not (len(recent) == 3 and all(r == c for r in recent))]
+        pool = open_ or concepts
         c = min(pool, key=lambda k: (self.data["concepts"][k]["score"], self.data["concepts"][k]["attempts"]))
         return c, False, ("weakest concept" if open_ else "all mastered: review the weakest")
 
-    def next_exercise(self) -> tuple[Exercise, str]:
-        c, contrast, why = self.pick()
+    def next_exercise(self, chapter: str | None = None) -> tuple[Exercise, str]:
+        c, contrast, why = self.pick(chapter)
         st = self.concept(c)
         self.data["seed"] += 1
         ex = generate(c, st["level"], self.data["seed"], contrast)
@@ -374,9 +383,11 @@ class Progress:
         self.data["experiments"].append({"t": int(time.time()), "lab": lab, "mutation": mutation, **verdict})
         return self
 
-    def status(self) -> str:
+    def status(self, chapter: str | None = None) -> str:
         lines = ["concept               attempts  correct  level  score  mastered"]
         for c in CONCEPTS:
+            if chapter and chapter_of(c) != chapter:
+                continue
             s = self.data["concepts"].get(c)
             if s:
                 lines.append(f"{c:<22}{s['attempts']:>8}{s['correct']:>9}{s['level']:>7}{s['score']:>7.2f}  "
@@ -413,8 +424,9 @@ def add_cli(sub):
 
 def cmd_exercise(a):
     pr = Progress.load(a.progress)
+    ch = getattr(a, "chapter", None)
     if a.action == "next":
-        ex, why = pr.next_exercise()
+        ex, why = pr.next_exercise(ch)
         pr.save()
         print(f"[{ex.id}]  ({why})\n{ex.question}\n\nprogram:\n{ex.program}\n\n"
               f"answer with: python3 -m eac exercise answer {ex.id} <answer>")
@@ -427,13 +439,21 @@ def cmd_exercise(a):
     elif a.action == "show":
         print(json.dumps(pr.data["pending"].get(a.args[0]), ensure_ascii=False, indent=1))
     elif a.action == "status":
-        print(pr.status())
+        print(pr.status(ch))
     elif a.action == "auto":
         prof, rng = json.loads(a.profile), random.Random(0)
         for _ in range(a.rounds):
-            ex, why = pr.next_exercise()
+            ex, why = pr.next_exercise(ch)
             r = pr.answer(ex.id, simulated_answer(ex, prof, rng))
             print(f"{ex.id:<34} {why:<34} {'ok ' if r['ok'] else 'BAD'} {r['confusion'] or ''}")
         pr.save()
-        print(pr.status())
+        print(pr.status(ch))
     return 0
+
+
+# ------------------------------------------------------------------ chapter 7
+from . import exercises07 as _x7  # noqa: E402  (needs Exercise defined above)
+
+CONCEPTS.update(_x7.CONCEPTS)
+CONFUSION_CONCEPT.update(_x7.CONFUSION_CONCEPT)
+GENERATORS.update(_x7.GENERATORS)
